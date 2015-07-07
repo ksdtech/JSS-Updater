@@ -48,18 +48,19 @@ public class JssUpdater {
 		} catch (Exception ex) {
 			
 		}
-		factory = transport.createRequestFactory(new HttpRequestInitializer() {
-			@Override
-			public void initialize(HttpRequest request) {
-				request.setParser(new XmlObjectParser(nsdict));
-			}
-		});
-
-		// TODO: read authUsername and authPassword from properties file
 		headers = new HttpHeaders();
 		headers.setBasicAuthentication(authUsername, authPassword);
 		headers.setAccept("application/xml");
 		headers.setContentType("application/xml");
+		
+		factory = transport.createRequestFactory(new HttpRequestInitializer() {
+			@Override
+			public void initialize(HttpRequest request) {
+				request.setParser(new XmlObjectParser(nsdict));
+				request.setHeaders(headers);
+			}
+		});
+
 	}
 	
 	private void readProperties() throws IOException {
@@ -94,7 +95,6 @@ public class JssUpdater {
 		int status = 500;
 		try {
 			HttpRequest matchRequest = factory.buildGetRequest(matchUrl);
-			matchRequest.setHeaders(headers);
 			HttpResponse matchResponse = matchRequest.execute();
 			status = matchResponse.getStatusCode();
 			if (status < 400) {
@@ -144,7 +144,6 @@ public class JssUpdater {
 				System.out.println("content " + out.toString());
 				HttpRequest updateRequest = factory.buildPutRequest(updateUrl,
 						content);
-				updateRequest.setHeaders(headers);
 				HttpResponse updateResponse = updateRequest.execute();
 				status = updateResponse.getStatusCode();
 				String respStr = updateResponse.parseAsString();
@@ -184,8 +183,8 @@ public class JssUpdater {
 
 	public static void main(String[] args) {
 		JssUpdater updater = new JssUpdater();
+		// updater.updateMobileDevice("F4KKQXLKF196", "ipad-1448", "A001448");
 		try {
-			// updater.updateMobileDevice("F4KKQXLKF196", "ipad-1448", "A001448");
 			updater.processCsvFile("ipads.csv");
 		} catch (IOException e) {
 			e.printStackTrace();
