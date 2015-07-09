@@ -9,7 +9,7 @@ public class MobileDeviceList {
 	@Key
 	public int size;
 	@Key("mobile_device")
-	public List<MobileDeviceMatch> mobileDevices = new ArrayList();
+	public List<MobileDeviceMatch> mobileDevices = new ArrayList<MobileDeviceMatch>();
 	
 	public MobileDeviceMatch first() throws IndexOutOfBoundsException {
 		if (mobileDevices == null || mobileDevices.isEmpty()) {
