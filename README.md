@@ -1,6 +1,15 @@
 JSS-Updater
 -----------
 
+Dependencies
+------------
+
+Install Google Http Java Client from 
+https://developers.google.com/api-client-library/java/google-http-java-client/
+
+Install Apache Commons CSV 1.1 jar from
+https://commons.apache.org/proper/commons-csv/
+
 
 /match/serial_number
 

@@ -1,6 +1,7 @@
 package org.kentfieldschools.jss;
 
 import java.io.ByteArrayOutputStream;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,8 +31,8 @@ public class JssUpdater {
 	private String authPassword = null;
 	private String jssServerUrl = null;
 	private String fileName = null;
-	@SuppressWarnings("unused")
 	private CSVFormat csv = null;
+	private boolean debug = false; 
 
 	public final HttpTransport transport = new NetHttpTransport();
 	public final XmlNamespaceDictionary nsdict = new XmlNamespaceDictionary()
@@ -57,8 +58,6 @@ public class JssUpdater {
 				request.setHeaders(headers);
 			}
 		});
-		
-
 	}
 
 	private void readProperties() throws IOException {
@@ -105,13 +104,15 @@ public class JssUpdater {
 						.parseAs(MobileDeviceList.class);
 				if (mobileDevices.size == 1) {
 					MobileDeviceMatch device = mobileDevices.first();
-					System.out.println("match " + serialNumber + ", status "
+					if (debug) {
+						System.out.println("match " + serialNumber + ", status "
 							+ String.valueOf(status) + ", id " + device.id);
+					}
 					if (device.id != null && !device.id.isEmpty()) {
 						return device;
 					}
-				} else {
-					System.out.println("Match " + serialNumber + ", got "
+				} else if (debug) {
+					System.out.println("match " + serialNumber + ", got "
 							+ String.valueOf(mobileDevices.size) + " devices");
 				}
 			}
@@ -120,12 +121,39 @@ public class JssUpdater {
 		} catch (Exception ex1) {
 			System.out.println("Exception! " + ex1.getMessage());
 		}
-		// Not found or internal error
-		System.out.println("match " + serialNumber + ", status "
+		
+		if (debug) {
+			// Not found or internal error
+			System.out.println("match " + serialNumber + ", status "
 				+ String.valueOf(status));
+		}
 		return null;
 	}
 
+	public MobileDevice getMobileDevice(String id) {
+		String getUrlString = jssServerUrl + MOBILE_DEVICES_API_PATH
+				+ "/id/" + id;
+		GenericUrl getUrl = new GenericUrl(getUrlString);
+		int status = 500;
+		try {
+			// JSS REST API - use GET method to query existing objects
+			// (read-only)
+			HttpRequest getRequest = factory.buildGetRequest(getUrl);
+			HttpResponse getResponse = getRequest.execute();
+			status = getResponse.getStatusCode();
+			if (status < 400) {
+				MobileDevice device = getResponse.parseAs(MobileDevice.class);
+				if (device != null) {
+					return device;
+				}
+			}
+		} catch (Exception ex1) {
+			System.out.println("Exception! " + ex1.getMessage());
+		}
+		
+		return null; 
+	}
+	
 	public boolean updateMobileDevice(String serialNumber, String deviceName,
 			String assetTag, String building, String room, String department) {
 		boolean success = false;
@@ -133,39 +161,50 @@ public class JssUpdater {
 		if (match != null) {
 			// TODO: urlencode string
 			String id = match.id;
-			String updateUrlString = jssServerUrl + MOBILE_DEVICES_API_PATH
-					+ "/id/" + id;
-			GenericUrl updateUrl = new GenericUrl(updateUrlString);
-			int status = 500;
-			try {
-				MobileDevice device = new MobileDevice(id);
-				device.general.deviceName = deviceName;
-				device.general.assetTag = assetTag;
-				device.location.building = building;
-				device.location.room = room;
-				device.location.department = department;
-
-				XmlHttpContent content = new XmlHttpContent(nsdict,
-						"mobile_device", device);
-				OutputStream out = new ByteArrayOutputStream();
-				content.writeTo(out);
-				System.out.println("content " + out.toString());
-
-				// JSS REST API - use PUT method to update existing object
-				HttpRequest updateRequest = factory.buildPutRequest(updateUrl,
-						content);
-				HttpResponse updateResponse = updateRequest.execute();
-				status = updateResponse.getStatusCode();
-				String respStr = updateResponse.parseAsString();
-				System.out.println(respStr);
-				if (status < 400) {
-					success = true;
+			MobileDevice device = getMobileDevice(id);
+			if (device != null) {		
+				String updateUrlString = jssServerUrl + MOBILE_DEVICES_API_PATH
+						+ "/id/" + id;
+				GenericUrl updateUrl = new GenericUrl(updateUrlString);
+				int status = 500;
+				try {
+					device.general.deviceName = deviceName;
+					device.general.assetTag = assetTag;
+					
+					if (building != null && !building.isEmpty()) {
+						device.location.building = building;
+					}
+					if (room != null && !room.isEmpty()) {
+						device.location.room = room;
+					}
+					if (department != null && !department.isEmpty()) {
+						device.location.department = department;
+					}
+	
+					XmlHttpContent content = new XmlHttpContent(nsdict,
+							"mobile_device", device);
+					if (debug) {
+						OutputStream out = new ByteArrayOutputStream();
+						content.writeTo(out);
+						System.out.println("content " + out.toString());
+					}
+					
+					// JSS REST API - use PUT method to update existing object
+					HttpRequest updateRequest = factory.buildPutRequest(updateUrl,
+							content);
+					HttpResponse updateResponse = updateRequest.execute();
+					status = updateResponse.getStatusCode();					
+					if (status < 400) {
+						success = true;
+					}
+				} catch (Exception ex1) {
+					System.out.println("Exception! " + ex1.getMessage());
 				}
-			} catch (Exception ex1) {
-				System.out.println("Exception! " + ex1.getMessage());
+				if (debug) {
+					System.out.println("update " + id + ", status "
+						+ String.valueOf(status));
+				}
 			}
-			System.out.println("update " + id + ", status "
-					+ String.valueOf(status));
 		}
 		return success;
 	}
@@ -179,19 +218,18 @@ public class JssUpdater {
 				CSVFormat.EXCEL.withHeader());
 		for (CSVRecord record : parser) {
 			String serialNumber = record.get("Serial Number");
-			String assetTag = record.get("Asset Tag");
 			String deviceName = record.get("iPad Name");
-			String department = record.get("Department");
+			String assetTag = record.get("Asset Tag");
 			String building = record.get("Building");
 			String room = record.get("Room");
+			String department = record.get("Department");
 			if (serialNumber != null && !serialNumber.isEmpty()
 					&& assetTag != null && !assetTag.isEmpty()
 					&& deviceName != null && !deviceName.isEmpty()) {
 				boolean success = updateMobileDevice(serialNumber, deviceName,
 						assetTag, building, room, department);
-				System.out.println("update " + serialNumber + ", "
+				System.out.println(serialNumber + "\t"
 						+ String.valueOf(success));
-				break;
 			} else {
 				System.out.println("bad record at line "
 						+ String.valueOf(record.getRecordNumber()));
@@ -203,7 +241,7 @@ public class JssUpdater {
 		JssUpdater updater = new JssUpdater();
 		// updater.updateMobileDevice("F4KKQXLKF196", "ipad-1448", "A001448");
 		try {
-			updater.processCsvFile("ipads.csv");
+			updater.processCsvFile("ipad-deployment.csv");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -8,6 +8,8 @@ public class MobileDevice {
 	@Key
 	public MobileDeviceLocation location = new MobileDeviceLocation();
 
+	public MobileDevice() {
+	}
 	public MobileDevice(String id) {
 		general.id = id;
 	}

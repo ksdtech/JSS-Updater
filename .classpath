@@ -2,7 +2,6 @@
 <classpath>
 	<classpathentry excluding="org/kentfieldschools/jss/google-http-java-client/|org/kentfieldschools/jss/google-http-java-client/" kind="src" path="src"/>
 	<classpathentry kind="src" path="resources"/>
-	<classpathentry kind="lib" path="src/org/kentfieldschools/jss/commons-csv-1.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-logging-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/google-http-client-1.20.0.jar"/>
 	<classpathentry kind="lib" path="lib/google-http-client-android-1.20.0.jar"/>
@@ -24,5 +23,6 @@
 	<classpathentry kind="lib" path="lib/transaction-api-1.1.jar"/>
 	<classpathentry kind="lib" path="lib/xpp3-1.1.4c.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="lib/commons-csv-1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
