@@ -31,7 +31,7 @@ public class JssUpdater {
 	private String authPassword = null;
 	private String jssServerUrl = null;
 	private String fileName = null;
-	private CSVFormat csv = null;
+	private boolean matchOnly = true;
 	private boolean debug = false; 
 
 	public final HttpTransport transport = new NetHttpTransport();
@@ -218,28 +218,39 @@ public class JssUpdater {
 				CSVFormat.EXCEL.withHeader());
 		for (CSVRecord record : parser) {
 			String serialNumber = record.get("Serial Number");
-			String deviceName = record.get("iPad Name");
-			String assetTag = record.get("Asset Tag");
-			String building = record.get("Building");
-			String room = record.get("Room");
-			String department = record.get("Department");
-			if (serialNumber != null && !serialNumber.isEmpty()
-					&& assetTag != null && !assetTag.isEmpty()
-					&& deviceName != null && !deviceName.isEmpty()) {
-				boolean success = updateMobileDevice(serialNumber, deviceName,
-						assetTag, building, room, department);
-				System.out.println(serialNumber + "\t"
-						+ String.valueOf(success));
+			
+			boolean success = false;
+			if (matchOnly) {
+				MobileDeviceMatch match = findMobileDevice(serialNumber);
+				if (match != null) {
+					success = true;
+				}
 			} else {
-				System.out.println("bad record at line "
-						+ String.valueOf(record.getRecordNumber()));
-			}
+				String deviceName = record.get("iPad Name");
+				String assetTag = record.get("Asset Tag");
+				String building = record.get("Building");
+				String room = record.get("Room");
+				String department = record.get("Department");
+				if (serialNumber != null && !serialNumber.isEmpty()
+						&& assetTag != null && !assetTag.isEmpty()
+						&& deviceName != null && !deviceName.isEmpty()) {
+					
+	
+					success = updateMobileDevice(serialNumber, deviceName,
+							assetTag, building, room, department);
+				} else {
+					System.out.println("bad record at line "
+							+ String.valueOf(record.getRecordNumber()));
+					continue;
+				}
+			}	
+			System.out.println(serialNumber + "\t"
+				+ String.valueOf(success));
 		}
 	}
 
 	public static void main(String[] args) {
 		JssUpdater updater = new JssUpdater();
-		// updater.updateMobileDevice("F4KKQXLKF196", "ipad-1448", "A001448");
 		try {
 			updater.processCsvFile("ipad-deployment.csv");
 		} catch (IOException e) {
